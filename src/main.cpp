@@ -27,27 +27,35 @@ void img_to_gray_scale(CImg<unsigned char> &img){
     }
 }
 
-
 int main(int argc, char** argv){
-    
-    // Tempoary file path to used image
-    CImg<unsigned char> image("../images/image1.jpeg");
-    const unsigned char red[] = { 255,0,0 }, green[] = { 0,255,0 }, blue[] = { 0,0,255 };
+    for (int image_index = 1; image_index < argc; image_index++)
+    { std::cout << argv[image_index] << std::endl;
 
-    // Custom grayscale converter
-    img_to_gray_scale(image);
-    float scale_factor = 0.1;
-    image.resize(image.width() * scale_factor , image.height() * scale_factor);
+        // Tempoary file path to used image
+        try{
+            CImg<unsigned char> image(argv[image_index]);
+            const unsigned char red[] = { 255,0,0 }, green[] = { 0,255,0 }, blue[] = { 0,0,255 };
 
-    char shade[] = {'.', ',', ':', ';', '|', '/', '=', '#', '%'};
- 
-    for (int i = 0; i < image.height(); i++){
-        for (int j = 0; j < image.width(); j++){
-            int value = image(j,i,0,1);
-            double valuef = value/255.0 * sizeof(shade)/sizeof(char); 
-            std::cout << shade[(int)ceil(valuef)] << std::endl;
+            // Custom grayscale converter
+            img_to_gray_scale(image);
+            float scale_factor = 0.1;
+            image.resize(image.width() * scale_factor , image.height() * scale_factor);
+
+            char shade[] = {'.', ',', ':', ';', '|', '/', '=', '#', '%'};
+
+            for (int i = 0; i < image.height(); i++){
+                for (int j = 0; j < image.width(); j++){
+                    int value = image(j,i,0,1);
+                    double valuef = value/255.0 * sizeof(shade)/sizeof(char); 
+                    std::cout << shade[(int)ceil(valuef)];
+                }
+                std::cout<<std::endl;
+            }
+
+        }catch(CImgIOException &e){
+            std::cerr << "Could not find file "<< argv[image_index] << std::endl;
+            std::cerr << "Error: " <<e.what()<< std::endl;
         }
-        std::cout<<std::endl;
+
     }
-    image.save_png("Output.png");
 }
