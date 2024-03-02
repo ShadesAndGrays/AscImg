@@ -1,5 +1,7 @@
 #include <iostream>
 #include <math.h>
+#include <stdexcept>
+#include <vector>
 #define cimg_display 0
 #include <CImg.h>
 
@@ -28,34 +30,67 @@ void img_to_gray_scale(CImg<unsigned char> &img){
 }
 
 int main(int argc, char** argv){
-    for (int image_index = 1; image_index < argc; image_index++)
-    { std::cout << argv[image_index] << std::endl;
+        float scale_factor = 0.5f;
+        std::vector<std::string> options(argv + 1, argv + argc);   
 
-        // Tempoary file path to used image
-        try{
-            CImg<unsigned char> image(argv[image_index]);
-            const unsigned char red[] = { 255,0,0 }, green[] = { 0,255,0 }, blue[] = { 0,0,255 };
+      if (std::find(options.begin(), options.end(), "--help") != options.end() ||
+        std::find(options.begin(), options.end(), "-h") != options.end()) {
+        std::cout << "Usage: AscImg [OPTION] [FILE]..." << std::endl;
+        std::cout << "Example: AscImg --scale-factor 0.5 meme.jpg" << std::endl;
+        return 0;
+    }
 
-            // Custom grayscale converter
-            img_to_gray_scale(image);
-            float scale_factor = 0.1;
-            image.resize(image.width() * scale_factor , image.height() * scale_factor);
-
-            char shade[] = {'.', ',', ':', ';', '|', '/', '=', '#', '%'};
-
-            for (int i = 0; i < image.height(); i++){
-                for (int j = 0; j < image.width(); j++){
-                    int value = image(j,i,0,1);
-                    double valuef = value/255.0 * sizeof(shade)/sizeof(char); 
-                    std::cout << shade[(int)ceil(valuef)];
-                }
-                std::cout<<std::endl;
+      auto scale_factor_it = std::find(options.begin(),options.end(),"--scale-factor");
+        if (scale_factor_it != options.end()){
+            if (scale_factor_it + 1 == options.end()){
+            std::cerr << "Error: Missing value for scale factor" << std::endl;
+            return 1;
             }
 
-        }catch(CImgIOException &e){
-            std::cerr << "Could not find file "<< argv[image_index] << std::endl;
-            std::cerr << "Error: " <<e.what()<< std::endl;
+            try {
+               scale_factor = std::stof(*(scale_factor_it +1));
+            }catch(const std::invalid_argument e){
+                std::cerr << "Error: Invalid argument for scale factor"<< std::endl;
+                return 1;
+            }
+            
+        }
+        else{
+            std::cerr << "Error: Missing scale factor argument"<< std::endl;
+            return 1;
+        }
+        options.erase(scale_factor_it, scale_factor_it + 2);
+        if (options.empty()){
+            std::cerr << "Error: No images we given" << std::endl;
+            return 0;
         }
 
-    }
+        for ( std::string i :options)
+        { 
+            // Tempoary file path to used image
+            try{
+                CImg<unsigned char> image(i.c_str());
+                const unsigned char red[] = { 255,0,0 }, green[] = { 0,255,0 }, blue[] = { 0,0,255 };
+
+                // Custom grayscale converter
+                img_to_gray_scale(image);
+                image.resize(image.width() * scale_factor , image.height() * scale_factor);
+
+                char shade[] = {'.', ',', ':', ';', '|', '/', '=', '#', '%'};
+
+                for (int i = 0; i < image.height(); i++){
+                    for (int j = 0; j < image.width(); j++){
+                        int value = image(j,i,0,1);
+                        double valuef = value/255.0 * sizeof(shade)/sizeof(char); 
+                        std::cout << shade[(int)ceil(valuef)];
+                    }
+                    std::cout<<std::endl;
+                }
+
+            }catch(CImgIOException &e){
+                std::cerr << "Could not find file "<< i << std::endl;
+                std::cerr << "Error: " <<e.what()<< std::endl;
+            }
+
+        }
 }
