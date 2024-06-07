@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <iostream>
 #include <math.h>
 #include <stdexcept>
@@ -30,6 +31,7 @@ void img_to_gray_scale(CImg<unsigned char> &img){
 }
 
 int main(int argc, char** argv){
+    printf("\u0280");
         float scale_factor = 0.5f;
         std::vector<std::string> options(argv + 1, argv + argc);   
 
@@ -76,7 +78,8 @@ int main(int argc, char** argv){
                 img_to_gray_scale(image);
                 image.resize(image.width() * scale_factor , image.height() * scale_factor);
 
-                char shade[] = {'.', ',', ':', ';', '|', '/', '=', '#', '%'};
+
+                char shade[] = {'.', ',', ':', ';', '|', '/', '$', '#', '@'};
 
                 for (int i = 0; i < image.height(); i++){
                     for (int j = 0; j < image.width(); j++){
