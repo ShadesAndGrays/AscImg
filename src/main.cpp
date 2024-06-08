@@ -1,4 +1,4 @@
-#include <cstdio>
+#include <exception>
 #include <iostream>
 #include <math.h>
 #include <stdexcept>
@@ -6,6 +6,7 @@
 #define cimg_display 0
 #include <CImg.h>
 #include <braille.hpp>
+#include <argparse/argparse.hpp>
 
 using namespace cimg_library;
 
@@ -32,56 +33,68 @@ void img_to_gray_scale(CImg<unsigned char> &img){
 }
 
 int main(int argc, char** argv){
-    printf("\u0280");
-        float scale_factor = 0.5f;
-        std::vector<std::string> options(argv + 1, argv + argc);   
+    argparse::ArgumentParser program("AscImg", "0.1.0");
 
-      if (std::find(options.begin(), options.end(), "--help") != options.end() ||
-        std::find(options.begin(), options.end(), "-h") != options.end()) {
-        std::cout << "Usage: AscImg [OPTION] [FILE]..." << std::endl;
-        std::cout << "Example: AscImg --scale-factor 0.5 meme.jpg" << std::endl;
-        return 0;
+    program.add_description("A cli based tool for generating ascii art from images");
+
+
+    program.add_argument("-s","--scale-factor")
+        .help("ratio of image size")
+        .default_value(0.5)
+        .nargs(1)
+        .scan<'f', float>();
+
+    program.add_argument("-t","--threshold")
+        .help("cutoff  for light and darnkess")
+        .scan<'f', float>()
+        .implicit_value(true);
+
+    program.add_argument("path")
+        .metavar("Img")
+        .implicit_value(true)
+        .remaining();
+
+    auto &style = program.add_mutually_exclusive_group();
+
+    style.add_argument("-A","--ascii")
+        .default_value(true)
+        .implicit_value(true);
+
+    style.add_argument("-B","--braille")
+        .default_value(false)
+        .implicit_value(true);
+
+
+    try{
+
+        program.parse_args(argc,argv);
+
+
+    }catch(const std::exception& err){
+        std::cerr << err.what() << std::endl;
+        std::cerr << program;
+        std::exit(1);
     }
+    
+    std::cout << "Using scale fator" <<  program.get("--scale-factor");;
+    return 0;
 
-      auto scale_factor_it = std::find(options.begin(),options.end(),"--scale-factor");
-        if (scale_factor_it != options.end()){
-            if (scale_factor_it + 1 == options.end()){
-            std::cerr << "Error: Missing value for scale factor" << std::endl;
-            return 1;
-            }
+    float scale_factor = program.get<float>("--scale-factor");
+    float threshold = program.get<float>("--threshold");
+    const unsigned char red[] = { 255,0,0 }, green[] = { 0,255,0 }, blue[] = { 0,0,255 };
+    const char shade[] = {'.', ',', ':', ';', '|', '/', '$', '#', '@'};
 
-            try {
-               scale_factor = std::stof(*(scale_factor_it +1));
-            }catch(const std::invalid_argument e){
-                std::cerr << "Error: Invalid argument for scale factor"<< std::endl;
-                return 1;
-            }
-            
-        }
-        else{
-            std::cerr << "Error: Missing scale factor argument"<< std::endl;
-            return 1;
-        }
-        options.erase(scale_factor_it, scale_factor_it + 2);
-        if (options.empty()){
-            std::cerr << "Error: No images we given" << std::endl;
-            return 0;
-        }
+    for ( std::string i :program.get<std::vector<std::string>>("path"))
+    { 
+        // Tempoary file path to used image
+        try{
+            CImg<unsigned char> image(i.c_str());
 
-        for ( std::string i :options)
-        { 
-            // Tempoary file path to used image
-            try{
-                CImg<unsigned char> image(i.c_str());
-                const unsigned char red[] = { 255,0,0 }, green[] = { 0,255,0 }, blue[] = { 0,0,255 };
+            // Custom grayscale converter
+            img_to_gray_scale(image);
+            image.resize(image.width() * scale_factor , image.height() * scale_factor);
 
-                // Custom grayscale converter
-                img_to_gray_scale(image);
-                image.resize(image.width() * scale_factor , image.height() * scale_factor);
-
-
-                char shade[] = {'.', ',', ':', ';', '|', '/', '$', '#', '@'};
-
+            if (program.get<bool>("ascii")){
                 for (int i = 0; i < image.height(); i++){
                     for (int j = 0; j < image.width(); j++){
                         int value = image(j,i,0,1);
@@ -90,6 +103,7 @@ int main(int argc, char** argv){
                     }
                     std::cout<<std::endl;
                 }
+            }else if (program.get<bool>("braille")) {
                 for (int i = 0; i < image.height(); i+=6){
                     for (int j = 0; j < image.width(); j+=2){
                         bool values[6] = {
@@ -104,11 +118,11 @@ int main(int argc, char** argv){
                     }
                     std::cout<<std::endl;
                 }
-
-            }catch(CImgIOException &e){
-                std::cerr << "Could not find file "<< i << std::endl;
-                std::cerr << "Error: " <<e.what()<< std::endl;
             }
-
+        }catch(CImgIOException &e){
+            std::cerr << "Could not find file "<< i << std::endl;
+            std::cerr << "Error: " <<e.what()<< std::endl;
         }
+
+    }
 }

@@ -12,3 +12,6 @@ set(SRC
     )
 
 add_executable(${PROJECT_NAME} ${SRC})
+
+find_package(argparse)
+target_link_libraries(${PROJECT_NAME} argparse::argparse)
