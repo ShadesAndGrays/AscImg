@@ -5,6 +5,7 @@
 #include <vector>
 #define cimg_display 0
 #include <CImg.h>
+#include <braille.hpp>
 
 using namespace cimg_library;
 
@@ -86,6 +87,20 @@ int main(int argc, char** argv){
                         int value = image(j,i,0,1);
                         double valuef = value/255.0 * sizeof(shade)/sizeof(char); 
                         std::cout << shade[(int)ceil(valuef)];
+                    }
+                    std::cout<<std::endl;
+                }
+                for (int i = 0; i < image.height(); i+=6){
+                    for (int j = 0; j < image.width(); j+=2){
+                        bool values[6] = {
+                            image(j,i,0,1) > 60,
+                            image(j,i+1,0,1) > 60,
+                            image(j,i+2,0,1) > 60,
+                            image(j+1,i,0,1) > 60,
+                            image(j+1,i+1,0,1) >60,
+                            image(j+1,i+2,0,1) >60,
+                        };
+                        std::cout << BrailleMapping::bmap.at(BinaryBraille(values));
                     }
                     std::cout<<std::endl;
                 }
