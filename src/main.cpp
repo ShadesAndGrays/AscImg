@@ -40,19 +40,16 @@ int main(int argc, char** argv){
 
     program.add_argument("-s","--scale-factor")
         .help("ratio of image size")
-        .default_value(0.5)
+        .default_value(0.5f)
+        .scan<'f', float>();
+
+
+    program.add_argument("-t","--threshold")
+        .help("cutoff for light and darnkess")
+        .default_value(0.5f)
         .nargs(1)
         .scan<'f', float>();
 
-    program.add_argument("-t","--threshold")
-        .help("cutoff  for light and darnkess")
-        .scan<'f', float>()
-        .implicit_value(true);
-
-    program.add_argument("path")
-        .metavar("Img")
-        .implicit_value(true)
-        .remaining();
 
     auto &style = program.add_mutually_exclusive_group();
 
@@ -64,27 +61,41 @@ int main(int argc, char** argv){
         .default_value(false)
         .implicit_value(true);
 
+    program.add_argument("img")
+        .nargs(argparse::nargs_pattern::at_least_one)
+        .remaining();
 
     try{
-
         program.parse_args(argc,argv);
 
-
+    }catch(const std::logic_error &err){
+        std::cerr << err.what() << std::endl;
+        std::cerr << program;
+        std::exit(1);
     }catch(const std::exception& err){
         std::cerr << err.what() << std::endl;
         std::cerr << program;
         std::exit(1);
     }
-    
-    std::cout << "Using scale fator" <<  program.get("--scale-factor");;
-    return 0;
-
     float scale_factor = program.get<float>("--scale-factor");
     float threshold = program.get<float>("--threshold");
+
     const unsigned char red[] = { 255,0,0 }, green[] = { 0,255,0 }, blue[] = { 0,0,255 };
     const char shade[] = {'.', ',', ':', ';', '|', '/', '$', '#', '@'};
 
-    for ( std::string i :program.get<std::vector<std::string>>("path"))
+    std::vector<std::string> images = {};
+    try{
+       images = program.get<std::vector<std::string>>("img");
+       std::cout << "Image count: " << images.size() << std::endl;
+    }catch(const std::logic_error &err){
+
+        std::cerr <<"No images: " << err.what() <<  std::endl;
+        std::cerr << program;
+        std::exit(1);
+    }
+
+       std::cout << "Image count: " << images.size() << std::endl;
+    for ( std::string i : images)
     { 
         // Tempoary file path to used image
         try{
@@ -107,12 +118,12 @@ int main(int argc, char** argv){
                 for (int i = 0; i < image.height(); i+=6){
                     for (int j = 0; j < image.width(); j+=2){
                         bool values[6] = {
-                            image(j,i,0,1) > 60,
-                            image(j,i+1,0,1) > 60,
-                            image(j,i+2,0,1) > 60,
-                            image(j+1,i,0,1) > 60,
-                            image(j+1,i+1,0,1) >60,
-                            image(j+1,i+2,0,1) >60,
+                            image(j,i,0,1) >  255 * threshold,
+                            image(j,i+1,0,1) >  255 * threshold,
+                            image(j,i+2,0,1) >  255 * threshold,
+                            image(j+1,i,0,1) >  255 * threshold,
+                            image(j+1,i+1,0,1) > 255 * threshold,
+                            image(j+1,i+2,0,1) > 255 * threshold,
                         };
                         std::cout << BrailleMapping::bmap.at(BinaryBraille(values));
                     }
