@@ -41,6 +41,7 @@ int main(int argc, char** argv){
     program.add_argument("-s","--scale-factor")
         .help("ratio of image size")
         .default_value(0.5f)
+        .nargs(1)
         .scan<'f', float>();
 
 
@@ -54,12 +55,10 @@ int main(int argc, char** argv){
     auto &style = program.add_mutually_exclusive_group();
 
     style.add_argument("-A","--ascii")
-        .default_value(true)
-        .implicit_value(true);
+        .flag();
 
     style.add_argument("-B","--braille")
-        .default_value(false)
-        .implicit_value(true);
+        .flag();
 
     program.add_argument("img")
         .nargs(argparse::nargs_pattern::at_least_one)
@@ -105,7 +104,8 @@ int main(int argc, char** argv){
             img_to_gray_scale(image);
             image.resize(image.width() * scale_factor , image.height() * scale_factor);
 
-            if (program.get<bool>("ascii")){
+            if (program.get<bool>("--ascii")){
+                
                 for (int i = 0; i < image.height(); i++){
                     for (int j = 0; j < image.width(); j++){
                         int value = image(j,i,0,1);
@@ -113,22 +113,24 @@ int main(int argc, char** argv){
                         std::cout << shade[(int)ceil(valuef)];
                     }
                     std::cout<<std::endl;
+                    std::cout << "Used Ascii " << std::endl;
                 }
-            }else if (program.get<bool>("braille")) {
+            }else if (program.get<bool>("--braille")) {
                 for (int i = 0; i < image.height(); i+=6){
                     for (int j = 0; j < image.width(); j+=2){
                         bool values[6] = {
-                            image(j,i,0,1) >  255 * threshold,
-                            image(j,i+1,0,1) >  255 * threshold,
-                            image(j,i+2,0,1) >  255 * threshold,
-                            image(j+1,i,0,1) >  255 * threshold,
-                            image(j+1,i+1,0,1) > 255 * threshold,
-                            image(j+1,i+2,0,1) > 255 * threshold,
+                            image(j,i,0,1) >  255.0 * threshold,
+                            image(j,i+1,0,1) >  255.0 * threshold,
+                            image(j,i+2,0,1) >  255.0 * threshold,
+                            image(j+1,i,0,1) >  255.0 * threshold,
+                            image(j+1,i+1,0,1) > 255.0 * threshold,
+                            image(j+1,i+2,0,1) > 255.0 * threshold,
                         };
                         std::cout << BrailleMapping::bmap.at(BinaryBraille(values));
                     }
-                    std::cout<<std::endl;
+                    std::cout << std::endl;
                 }
+                    std::cout << "Used Braille threshold =" << threshold << std::endl;
             }
         }catch(CImgIOException &e){
             std::cerr << "Could not find file "<< i << std::endl;
